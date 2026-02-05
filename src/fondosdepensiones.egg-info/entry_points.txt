@@ -1,0 +1,2 @@
+[console_scripts]
+fondosdescargas = fondosdepensiones.cli:main
