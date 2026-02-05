@@ -184,13 +184,3 @@ sobre series largas de Fondos de Pensiones en Chile.
 
 
 ---
-
-Si quieres, el **siguiente nivel** sería:
-
-- README en inglés
-- CLI tipo `fondos-descargar --desde 2020 --hasta 2024`
-- Logging estructurado
-- Tests mínimos
-- Publicación como paquete privado
-
-Tú mandas 🚀
