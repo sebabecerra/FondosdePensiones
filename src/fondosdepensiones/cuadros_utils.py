@@ -10,7 +10,7 @@ Este módulo centraliza la lógica repetida de:
 
 Debe ser usado por:
 - carteras.py
-- fecu.py
+- eeff.py
 """
 
 from typing import Iterable
@@ -37,7 +37,7 @@ def descargar_y_guardar_cuadros(
         csv_dir: directorio de salida para CSV.
         logger: logger del módulo llamador.
         contexto: texto descriptivo para logging
-                  (ej: 'CARTERAS 202401', 'FECU 202312').
+                  (ej: 'CARTERAS 202401', 'EEFF 202312').
 
     Flujo:
         - Itera sobre cada link

@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import argparse
 
-from fondosdepensiones.carteras import (
+from fondosdepensiones.carteras_inversion_agregadas import (
     descargar_carteras,
     descargar_carteras_rango,
 )
-from fondosdepensiones.fecu import (
-    descargar_fecu,
-    descargar_fecu_rango,
+from fondosdepensiones.eeff import (
+    descargar_eeff,
+    descargar_eeff_rango,
 )
 
 from fondosdepensiones.carteras_inversion import (
@@ -28,15 +28,15 @@ from fondosdepensiones.carteras_inversion import (
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Descarga datos desde SPensiones (Carteras y FECU)"
+        description="Descarga datos desde SPensiones (Carteras y EEFF)"
     )
 
     parser.add_argument(
     "tipo",
     choices=[
-        "carteras",
+        "carteras_inversion_agregadas",
         "carteras_inversion",
-        "fecu",
+        "eeff",
         "ambos"
     ],
     help="Tipo de descarga"
@@ -66,11 +66,11 @@ def main() -> None:
     if args.periodo:
         periodo = args.periodo
 
-        if args.tipo in ("carteras", "ambos"):
+        if args.tipo in ("carteras_inversion_agregadas", "ambos"):
             descargar_carteras(periodo)
 
-        if args.tipo in ("fecu", "ambos"):
-            descargar_fecu(periodo)
+        if args.tipo in ("eeff", "ambos"):
+            descargar_eeff(periodo)
 
         if args.tipo in ("carteras_inversion", "ambos"):
             descargar_carteras_inversion(periodo)
@@ -85,8 +85,8 @@ def main() -> None:
         if args.tipo in ("carteras", "ambos"):
             descargar_carteras_rango(desde, hasta)
 
-        if args.tipo in ("fecu", "ambos"):
-            descargar_fecu_rango(desde, hasta)
+        if args.tipo in ("eeff", "ambos"):
+            descargar_eeff_rango(desde, hasta)
 
         if args.tipo in ("carteras_inversion", "ambos"):
             descargar_carteras_inversion_rango(periodo)
