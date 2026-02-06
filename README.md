@@ -184,3 +184,103 @@ sobre series largas de Fondos de Pensiones en Chile.
 
 
 ---
+
+
+# Fondos de Pensiones – Chile  
+**Descarga y procesamiento de datos oficiales desde SPensiones**
+
+Proyecto en **Python** para descargar, procesar y persistir información oficial
+de **Fondos de Pensiones (AFP)** desde el sitio de la  
+**Superintendencia de Pensiones de Chile (SPensiones)**.
+
+El proyecto está diseñado como un **paquete Python profesional**, reproducible,
+modular y apto para análisis **regulatorio, financiero y académico**.
+
+---
+
+## 🎯 Alcance del proyecto
+
+Este pipeline permite descargar y procesar:
+
+### 📊 Carteras de Inversión Agregadas
+- Frecuencia **mensual**
+- Ejemplos: `202401`, `202412`
+- Permite:
+  - Mes específico
+  - Año completo
+  - Rango de años
+
+### 📈 Carteras de Inversión (desagregadas)
+- Frecuencia **mensual**
+- Misma semántica temporal que Carteras Agregadas
+
+### 🧾 Estados Financieros (EEFF)
+- Frecuencia **trimestral**
+- Solo meses:
+  - Marzo (`03`)
+  - Junio (`06`)
+  - Septiembre (`09`)
+  - Diciembre (`12`)
+- Permite:
+  - Trimestre específico
+  - Año completo (4 trimestres)
+  - Rango de años
+
+### 💰 Valores Cuota
+- Frecuencia **anual**
+- Descarga **todo el año completo**
+- Permite:
+  - Año único (`2024`)
+  - Rango de años (`2020–2025`)
+- No admite descarga mensual
+
+---
+
+## 🧠 Principios de diseño
+
+- Arquitectura **src-layout** (estándar industrial)
+- Separación estricta de responsabilidades:
+  - CLI → interpreta tiempo e intención
+  - Módulos → descargan un período concreto
+- Sin estado global
+- Idempotente (puede ejecutarse múltiples veces)
+- Logging estructurado (no `print` en lógica de negocio)
+- Compatible con:
+  - Local
+  - VS Code
+  - Google Colab
+
+---
+
+## 🧱 Estructura del proyecto
+
+```bash
+FondosdePensiones/
+│
+├── pyproject.toml
+├── README.md
+│
+├── src/
+│   └── fondosdepensiones/
+│       ├── __init__.py
+│       ├── config.py          # URLs y paths globales
+│       ├── session.py         # Fábrica de sesiones HTTP
+│       ├── logger.py          # Configuración de logging
+│       ├── html_utils.py      # Decodificación y limpieza HTML
+│       ├── io_utils.py        # Guardado HTML / CSV
+│       ├── cuadros_utils.py   # Descarga común de cuadros HTML
+│       │
+│       ├── carteras_inversion_agregadas.py
+│       ├── carteras_inversion.py
+│       ├── eeff.py
+│       ├── valores_cuota.py
+│       │
+│       └── cli.py             # CLI principal
+│
+├── data/
+│   ├── Carteras_Inversiones_agregadas/
+│   ├── Carteras_Inversiones/
+│   ├── Estados_Financieros/
+│   └── Valores_Cuota/
+│
+└── .venv/
