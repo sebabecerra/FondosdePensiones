@@ -14,4 +14,4 @@ data/
 *.egg-info/
 
 # Archivos de prueba locales
-src/fondosdepensiones/prueba.py
+src/fondosdepensiones/prueba.py.vscode/
