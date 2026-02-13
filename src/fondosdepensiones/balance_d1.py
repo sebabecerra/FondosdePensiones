@@ -78,6 +78,12 @@ def descargar_balance_d1(
     # -------------------------
     # Validación básica
     # -------------------------
+    anio = periodo[:4]
+    
+    base_dir = Path(base_dir)
+    zip_dir = base_dir / anio / "zip"
+    csv_dir = base_dir / anio / "csv"
+
     if len(periodo) != 6 or not periodo.isdigit():
         raise ValueError("periodo debe tener formato YYYYMM")
 
