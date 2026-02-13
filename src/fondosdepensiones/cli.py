@@ -1,10 +1,98 @@
 from __future__ import annotations
 
-"""CLI del proyecto fondosdepensiones.
-
-Este módulo orquesta las descargas pasando a cada motor exactamente los 
-parámetros que su firma de función soporta, evitando errores de 'unexpected argument'.
 """
+CLI del proyecto fondosdepensiones.
+
+Este módulo define la interfaz de línea de comandos (CLI) del proyecto.
+Su única responsabilidad es:
+
+1) Interpretar la intención temporal del usuario (mes, año, rango).
+2) Validar combinaciones permitidas (según semántica del dato).
+3) Delegar la ejecución a los módulos de descarga (sin duplicar lógica de negocio).
+
+────────────────────────────────────────────────────────────────────
+SEMÁNTICA TEMPORAL (la regla de oro)
+────────────────────────────────────────────────────────────────────
+Cada “tipo” de dato tiene su propia granularidad:
+
+- Carteras (agregadas / inversión):
+    * Mensual:      YYYYMM
+    * Año completo: YYYY    → expande a 12 meses (YYYY01..YYYY12)
+    * Rango:        YYYY YYYY → expande a todos los meses entre ambos años
+
+- EEFF:
+    * Trimestral:   solo existen para meses 03, 06, 09, 12
+    * Mensual:      se acepta YYYYMM SOLO si es uno de esos trimestres
+    * Año completo: YYYY    → expande a 4 trimestres (YYYY03, YYYY06, YYYY09, YYYY12)
+    * Rango:        YYYY YYYY → expande a trimestres correspondientes
+
+- Valores Cuota:
+    * Anual:        YYYY
+    * Rango:        YYYY YYYY
+    * NO admite:    YYYYMM (porque la descarga se construye por año)
+      Nota: internamente la serie es diaria, pero el “control” en CLI es anual.
+
+- Precios IF (Instrumentos Financieros):
+    * Anual:        YYYY
+    * Rango:        YYYY YYYY
+    * NO admite:    YYYYMM
+      Nota: internamente itera DIARIO (pYYYYMMDD.zip), pero el input del CLI es anual.
+
+- Balance D1:
+    * Mensual:      YYYYMM
+    * Año completo: YYYY    → expande a 12 meses
+    * Rango:        YYYY YYYY → expande a meses completos
+    * Nota:
+        - Replica el botón “Buscar” del formulario D1
+        - Descarga ZIP oficial mensual (contiene CSV)
+
+────────────────────────────────────────────────────────────────────
+EJEMPLOS DE USO
+────────────────────────────────────────────────────────────────────
+# Carteras (mensual)
+fondosdescargas carteras_inversion_agregadas --periodo 202401
+
+# Carteras (año completo)
+fondosdescargas carteras_inversion --periodo 2024
+
+# Carteras (rango de años)
+fondosdescargas carteras_inversion_agregadas --rango 2024 2025
+
+# EEFF (trimestre puntual)
+fondosdescargas eeff --periodo 202412
+
+# EEFF (año completo → 4 trimestres)
+fondosdescargas eeff --periodo 2024
+
+# Valores Cuota (año completo)
+fondosdescargas valores_cuota --periodo 2024 --fondo C
+
+# Valores Cuota (rango)
+fondosdescargas valores_cuota --rango 2020 2024 --fondo A
+
+# Precios IF (año completo)
+fondosdescargas precios_if --periodo 2025
+
+# Precios IF (rango)
+fondosdescargas precios_if --rango 2022 2025
+
+# Un mes
+fondosdescargas balance_d1 --periodo 202505
+
+# Año completo
+fondosdescargas balance_d1 --periodo 2024
+
+# Rango
+fondosdescargas balance_d1 --rango 2020 2024
+
+────────────────────────────────────────────────────────────────────
+PERFORMANCE
+────────────────────────────────────────────────────────────────────
+- Se introduce el parámetro --workers para motores que soportan 
+  concurrencia (actualmente: precios_if).
+"""
+
+
 
 import argparse
 import sys
