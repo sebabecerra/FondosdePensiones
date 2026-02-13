@@ -1,32 +1,11 @@
-"""
-Descarga de Carteras de Inversión desde el sitio de la
-Superintendencia de Pensiones (Chile).
-
-Este módulo implementa el flujo completo para obtener las
-Carteras de Inversión (desagregadas) para un período mensual
-específico (YYYYMM).
-
-Responsabilidades del módulo:
-- Construir la URL intermedia de Carteras de Inversión.
-- Extraer TODOS los links HTML disponibles.
-- Delegar la descarga y persistencia (HTML + CSV) a utilidades comunes.
-
-Decisiones de diseño:
-- No imprime directamente (usa logging).
-- No genera rangos de períodos (eso es responsabilidad del CLI).
-- Reutiliza `cuadros_utils` para evitar duplicación.
-- Mantiene API simétrica a `carteras.py`.
-
-API pública:
-- descargar_carteras_inversion(periodo, base_dir)
-- descargar_carteras_inversion_rango(desde_anio, hasta_anio, base_dir)
-"""
+"""Descarga concurrente de Carteras de Inversión (Desagregadas)."""
 
 from __future__ import annotations
 
 import os
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+from typing import Any
 
 from .config import BASE_URL, DEFAULT_CARTERAS_INVERSIONES_DIR
 from .session import crear_sesion
@@ -35,29 +14,17 @@ from .logger import configurar_logger
 
 logger = configurar_logger(__name__)
 
-
-# ============================================================
-# API PÚBLICA – PERÍODO ÚNICO
-# ============================================================
 def descargar_carteras_inversion(
     periodo: str,
     base_dir: str = DEFAULT_CARTERAS_INVERSIONES_DIR,
+    **kwargs: Any,  # <--- RECIBE CONFIG_DESCARGA
 ) -> None:
-    """
-    Descarga las Carteras de Inversión para un período mensual específico.
+    """Descarga de forma paralela las carteras desagregadas."""
+    
+    # Inyectamos el valor configurado por el usuario
+    workers = kwargs.get("max_workers", 5)
 
-    Args:
-        periodo (str): Período en formato YYYYMM (ej: "202401").
-        base_dir (str): Directorio base de salida.
-
-    Flujo:
-        1. Construye la URL intermedia del período.
-        2. Extrae todos los links HTML disponibles.
-        3. Descarga y guarda cada cuadro (HTML + CSV).
-    """
-    # --- NUEVA LÓGICA DE DIRECTORIOS ---
-    anio = periodo[:4]  # Extrae "2024" de "202401"
-
+    anio = periodo[:4]
     html_dir = os.path.join(base_dir, anio, "html", periodo)
     csv_dir = os.path.join(base_dir, anio, "csv", periodo)
 
@@ -69,26 +36,19 @@ def descargar_carteras_inversion(
         f"&orden=10&periodo={periodo}&ext=.php"
     )
 
-    logger.info("[CARTERAS_INVERSION %s] GET página intermedia", periodo)
+    logger.info("[CARTERAS_INVERSION %s] Obteniendo links de cuadros", periodo)
 
     response = session.get(url_intermedia, timeout=30)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
-
-    # 👇 MISMA LÓGICA QUE CARTERAS AGREGADAS
     links = [
         urljoin(BASE_URL, a["href"])
         for a in soup.find_all("a", title="Html", href=True)
         if "genera_desagregada_xsl_v2.0.php" in a["href"]
     ]
 
-    if not links:
-        logger.warning(
-            "[CARTERAS_INVERSION %s] Sin links de cuadros (0)", periodo
-        )
-        return
-
+    # Pasamos el parámetro de hilos al motor de persistencia
     descargar_y_guardar_cuadros(
         session=session,
         links=links,
@@ -96,27 +56,5 @@ def descargar_carteras_inversion(
         csv_dir=csv_dir,
         logger=logger,
         contexto=f"CARTERAS_INVERSION {periodo}",
+        max_workers=workers
     )
-
-
-# ============================================================
-# API PÚBLICA – RANGO DE AÑOS
-# ============================================================
-def descargar_carteras_inversion_rango(
-    desde_anio: int,
-    hasta_anio: int,
-    base_dir: str = DEFAULT_CARTERAS_INVERSIONES_DIR,
-) -> None:
-    """
-    Descarga Carteras de Inversión para todos los meses
-    de un rango de años.
-
-    Args:
-        desde_anio (int): Año inicial (inclusive).
-        hasta_anio (int): Año final (inclusive).
-        base_dir (str): Directorio base de salida.
-    """
-    for anio in range(desde_anio, hasta_anio + 1):
-        for mes in range(1, 13):
-            periodo = f"{anio}{mes:02d}"
-            descargar_carteras_inversion(periodo, base_dir=base_dir)
