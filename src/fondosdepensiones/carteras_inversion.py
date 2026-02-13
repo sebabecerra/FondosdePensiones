@@ -55,10 +55,13 @@ def descargar_carteras_inversion(
         2. Extrae todos los links HTML disponibles.
         3. Descarga y guarda cada cuadro (HTML + CSV).
     """
-    html_dir = os.path.join(base_dir, "html", periodo)
-    csv_dir = os.path.join(base_dir, "csv", periodo)
+    # --- NUEVA LÓGICA DE DIRECTORIOS ---
+    anio = periodo[:4]  # Extrae "2024" de "202401"
 
-    session = crear_sesion()
+    html_dir = os.path.join(base_dir, anio, "html", periodo)
+    csv_dir = os.path.join(base_dir, anio, "csv", periodo)
+
+    session = crear_sesion() 
 
     url_intermedia = (
         f"{BASE_URL}/apps/loadCarteras/loadCarInv.php"

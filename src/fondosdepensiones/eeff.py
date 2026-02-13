@@ -60,8 +60,11 @@ def descargar_eeff(
         4. Recorre las pestañas del HTML para encontrar los cuadros.
         5. Descarga y guarda cada cuadro usando utilidades comunes.
     """
-    html_dir = os.path.join(base_dir, "html", periodo)
-    csv_dir = os.path.join(base_dir, "csv", periodo)
+    # --- NUEVA LÓGICA DE DIRECTORIOS ---
+    anio = periodo[:4]  # Extrae "2024" de "202401"
+
+    html_dir = os.path.join(base_dir, anio, "html", periodo)
+    csv_dir = os.path.join(base_dir, anio, "csv", periodo)
 
     session = crear_sesion()
 

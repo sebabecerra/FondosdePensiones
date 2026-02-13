@@ -58,9 +58,12 @@ def descargar_carteras(
         4. Extrae los links HTML de los cuadros disponibles.
         5. Descarga y guarda cada cuadro usando utilidades comunes.
     """
+    # --- NUEVA LÓGICA DE DIRECTORIOS ---
+    anio = periodo[:4]  # Extrae "2024" de "202401"
+
     # Directorios de salida organizados por período
-    html_dir = os.path.join(base_dir, "html", periodo)
-    csv_dir = os.path.join(base_dir, "csv", periodo)
+    html_dir = os.path.join(base_dir, anio, "html", periodo)
+    csv_dir = os.path.join(base_dir, anio, "csv", periodo)
 
     # Sesión HTTP dedicada (evita contaminación entre períodos)
     session = crear_sesion()
