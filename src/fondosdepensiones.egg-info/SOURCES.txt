@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/fondosdepensiones/__init__.py
+src/fondosdepensiones/balance_d1.py
 src/fondosdepensiones/carteras_inversion.py
 src/fondosdepensiones/carteras_inversion_agregadas.py
 src/fondosdepensiones/cli.py
@@ -10,8 +11,10 @@ src/fondosdepensiones/eeff.py
 src/fondosdepensiones/html_utils.py
 src/fondosdepensiones/io_utils.py
 src/fondosdepensiones/logger.py
+src/fondosdepensiones/precios_if.py
 src/fondosdepensiones/session.py
 src/fondosdepensiones/utils_periodos.py
+src/fondosdepensiones/valores_cuota.py
 src/fondosdepensiones.egg-info/PKG-INFO
 src/fondosdepensiones.egg-info/SOURCES.txt
 src/fondosdepensiones.egg-info/dependency_links.txt
