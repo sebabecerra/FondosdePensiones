@@ -1,148 +1,130 @@
 """
-Auditoría de datos descargados – fondosdepensiones
+Auditoría Anual de Integridad 1:1 – fondosdepensiones
 
-Este script inspecciona el directorio data/ y responde:
-
-- Qué información existe
-- Cuántos archivos hay por tipo
-- Qué períodos están cubiertos
-- Qué períodos faltan (según reglas del proyecto)
-
-NO descarga nada.
-NO modifica archivos.
+Este script analiza un año completo, comparando mes a mes la cantidad de 
+links oficiales (X) contra los archivos CSV (Y) descargados.
 """
 
+import os
+import sys
+import requests
 from pathlib import Path
+from bs4 import BeautifulSoup
 from datetime import datetime
 
-DATA_DIR = Path("data")
+# --- INYECCIÓN DE RUTA PARA IMPORTAR DESDE SRC ---
+BASE_DIR = Path(__file__).resolve().parents[1]
+sys.path.append(os.path.join(BASE_DIR, "src"))
 
+try:
+    from fondosdepensiones.session import crear_sesion
+    from fondosdepensiones.config import DATA_DIR, BASE_URL
+except ImportError:
+    print("❌ ERROR: No se pudo importar la configuración. Ejecuta desde la raíz.")
+    sys.exit(1)
 
-# ============================================================
-# UTILIDADES
-# ============================================================
+# --- MAPA DE CONFIGURACIÓN TÉCNICA ---
+CONFIG_AUDITORIA = {
+    "1": {
+        "nombre": "Carteras Inversión Agregadas",
+        "carpeta": "Carteras_Inversiones_agregadas",
+        "url_fmt": "{base}/apps/loadCarteras/loadCarAgr.php?menu=sci&menuN1=estfinfp&menuN2=NOID&orden=20&periodo={periodo}&ext=.php",
+        "filtro_link": "genera_xsl_v2.0.php"
+    },
+    "2": {
+        "nombre": "Carteras Inversión (Desagregadas)",
+        "carpeta": "Carteras_Inversiones",
+        "url_fmt": "{base}/apps/loadCarteras/loadCarInv.php?menu=sci&menuN1=estfinfp&menuN2=NOID&orden=10&periodo={periodo}&ext=.php",
+        "filtro_link": "genera_desagregada_xsl_v2.0.php"
+    },
+    "3": {
+        "nombre": "Estados Financieros (EEFF)",
+        "carpeta": "Estados_Financieros",
+        "url_fmt": "{base}/apps/loadEstadisticas/loadFecuFondo.php?menu=sci&menuN1=estfinfp&menuN2=NOID&orden=30&periodo={periodo}&ext=.php",
+        "filtro_link": "loadCuadroFecuFondo.php"
+    }
+}
 
-def meses_entre(desde: int, hasta: int):
-    """Genera YYYYMM entre dos años (inclusive)."""
-    periodos = []
-    for anio in range(desde, hasta + 1):
-        for mes in range(1, 13):
-            periodos.append(f"{anio}{mes:02d}")
-    return periodos
+def auditar_anio(opcion, anio):
+    conf = CONFIG_AUDITORIA[opcion]
+    session = crear_sesion()
+    hoy = datetime.now()
 
+    print(f"\n" + "="*95)
+    print(f"📊 REPORTE ANUAL DE INTEGRIDAD: {conf['nombre']}")
+    print(f"📅 AÑO: {anio} | Ruta: data/{conf['carpeta']}/{anio}")
+    print("="*95)
+    print(f"{'PERIODO':<12} | {'WEB (X)':<10} | {'DISCO (Y)':<10} | {'ESTADO':<15} | {'DETALLE'}")
+    print("-" * 95)
 
-def trimestres_entre(desde: int, hasta: int):
-    """Genera YYYYMM trimestrales (03,06,09,12)."""
-    periodos = []
-    for anio in range(desde, hasta + 1):
-        for mes in (3, 6, 9, 12):
-            periodos.append(f"{anio}{mes:02d}")
-    return periodos
+    total_web_anio = 0
+    total_disco_anio = 0
 
+    for mes in range(1, 13):
+        periodo = f"{anio}{mes:02d}"
+        
+        # No auditar meses que aún no han ocurrido
+        if int(periodo) > int(hoy.strftime("%Y%m")):
+            break
 
-# ============================================================
-# AUDITORÍAS POR TIPO
-# ============================================================
+        # 1. Obtener Verdad de la Web
+        url_objetivo = conf["url_fmt"].format(base=BASE_URL, periodo=periodo)
+        try:
+            resp = session.get(url_objetivo, timeout=20)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            links_web = [a["href"] for a in soup.find_all("a", href=True) if conf["filtro_link"] in a["href"]]
+            if opcion == "3": # Filtro extra para EEFF
+                links_web = [l for l in links_web if "tipo=html" in l]
+            
+            n_web = len(links_web)
+        except Exception:
+            n_web = 0 # Asumimos no publicado o error temporal
 
-def auditar_carpeta_mensual(nombre: str, ruta: Path, desde: int, hasta: int):
-    print(f"\n📂 {nombre}")
-    csv_dir = ruta / "csv"
+        # 2. Obtener Realidad del Disco
+        ruta_local = DATA_DIR / conf["carpeta"] / str(anio) / "csv" / periodo
+        n_disco = len(list(ruta_local.glob("*.csv"))) if ruta_local.exists() else 0
 
-    existentes = sorted(p.name for p in csv_dir.glob("*") if p.is_dir())
-    esperados = meses_entre(desde, hasta)
+        # 3. Lógica de Estado
+        if n_web == 0:
+            estado = "⚪ VACÍO WEB"
+            detalle = "Sin links en SPensiones"
+        elif n_web == n_disco:
+            estado = "✅ OK"
+            detalle = "Sincronizado"
+        elif n_disco == 0:
+            estado = "❌ FALTANTE"
+            detalle = f"Faltan los {n_web} cuadros"
+        else:
+            estado = "⚠️  INCOMPLETO"
+            detalle = f"Faltan {n_web - n_disco} cuadros"
 
-    faltantes = sorted(set(esperados) - set(existentes))
+        print(f"{periodo:<12} | {n_web:<10} | {n_disco:<10} | {estado:<15} | {detalle}")
+        
+        total_web_anio += n_web
+        total_disco_anio += n_disco
 
-    print(f"  ✔ Períodos existentes : {len(existentes)}")
-    print(f"  ❌ Períodos faltantes  : {len(faltantes)}")
-
-    if faltantes:
-        print(f"  → Faltan: {faltantes[:6]}{' ...' if len(faltantes) > 6 else ''}")
-
-
-def auditar_eeff(ruta: Path, desde: int, hasta: int):
-    print("\n📂 EEFF (trimestral)")
-    csv_dir = ruta / "csv"
-
-    existentes = sorted(p.name for p in csv_dir.glob("*") if p.is_dir())
-    esperados = trimestres_entre(desde, hasta)
-
-    faltantes = sorted(set(esperados) - set(existentes))
-
-    print(f"  ✔ Trimestres existentes : {len(existentes)}")
-    print(f"  ❌ Trimestres faltantes  : {len(faltantes)}")
-
-    if faltantes:
-        print(f"  → Faltan: {faltantes}")
-
-
-def auditar_anual(nombre: str, ruta: Path, desde: int, hasta: int):
-    print(f"\n📂 {nombre} (anual)")
-    existentes = sorted(p.name for p in ruta.glob("*") if p.is_dir())
-    esperados = [str(a) for a in range(desde, hasta + 1)]
-
-    faltantes = sorted(set(esperados) - set(existentes))
-
-    print(f"  ✔ Años existentes : {len(existentes)}")
-    print(f"  ❌ Años faltantes  : {faltantes if faltantes else '—'}")
-
-
-# ============================================================
-# MAIN
-# ============================================================
+    print("-" * 95)
+    print(f"{'TOTALES':<12} | {total_web_anio:<10} | {total_disco_anio:<10} | "
+          f"{'COMPLETITUD:':<15} {((total_disco_anio/total_web_anio)*100 if total_web_anio > 0 else 0):.1f}%")
+    print("=" * 95)
 
 def main():
-    hoy = datetime.today()
-    anio_actual = hoy.year
+    print("\n--- SISTEMA DE AUDITORÍA ANUAL 1:1 ---")
+    print("1. Carteras Inversión Agregadas")
+    print("2. Carteras Inversión (Desagregadas)")
+    print("3. Estados Financieros (EEFF)")
+    
+    op = input("\nDataset a auditar [1-3]: ")
+    if op not in CONFIG_AUDITORIA: return
+    
+    anio = input("Año a auditar (YYYY): ")
+    if not anio.isdigit() or len(anio) != 4:
+        print("Año inválido.")
+        return
 
-    DESDE = 2018
-    HASTA = anio_actual
-
-    print("🧾 AUDITORÍA DE DATOS – fondosdepensiones")
-    print("=" * 60)
-    print(f"Rango esperado: {DESDE}–{HASTA}")
-
-    auditar_carpeta_mensual(
-        "Carteras Inversión Agregadas",
-        DATA_DIR / "Carteras_Inversiones_agregadas",
-        DESDE,
-        HASTA,
-    )
-
-    auditar_carpeta_mensual(
-        "Carteras Inversión",
-        DATA_DIR / "Carteras_Inversiones",
-        DESDE,
-        HASTA,
-    )
-
-    auditar_eeff(
-        DATA_DIR / "Estados_Financieros",
-        DESDE,
-        HASTA,
-    )
-
-    auditar_anual(
-        "Valores Cuota",
-        DATA_DIR / "valores_cuota",
-        DESDE,
-        HASTA,
-    )
-
-    auditar_anual(
-        "Precios IF",
-        DATA_DIR / "precios_if",
-        DESDE,
-        HASTA,
-    )
-
-    auditar_anual(
-        "Balance D1",
-        DATA_DIR / "balance_d1",
-        DESDE,
-        HASTA,
-    )
-
+    auditar_anio(op, anio)
 
 if __name__ == "__main__":
     main()
