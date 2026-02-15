@@ -18,3 +18,6 @@ src/fondosdepensiones/prueba.py
 
 # VSC
 .vscode/
+
+# JSON
+lista_archivos_csv.json
