@@ -302,6 +302,41 @@ def auditar_anio(opcion: str, anio: str) -> None:
             for name in faltantes:
                 print(f"  └─ ❌ {name}.csv")
 
+def auditar_rango_anios(opcion: str, anio_inicio: str, anio_fin: str) -> None:
+    """
+    Orquestador multi-año.
+
+    Ejecuta auditar_anio() para cada año en el rango cerrado:
+        [anio_inicio, anio_fin]
+
+    Ej:
+        2018–2020 → 2018, 2019, 2020
+
+    NO:
+    - duplica lógica
+    - modifica auditoría interna
+    - altera modelo X vs Y vs Z
+
+    Solo itera temporalmente.
+    """
+
+    try:
+        y0 = int(anio_inicio)
+        y1 = int(anio_fin)
+    except ValueError:
+        print("❌ Años deben ser numéricos")
+        return
+
+    if y0 > y1:
+        print("❌ Año inicio mayor que año fin")
+        return
+
+    print("\n" + "#" * 110)
+    print(f"🔎 AUDITORÍA MULTI-AÑO: {y0} → {y1}")
+    print("#" * 110)
+
+    for anio in range(y0, y1 + 1):
+        auditar_anio(opcion, str(anio))
 
 def main() -> None:
     print("\n--- SISTEMA DE AUDITORÍA ANUAL 1:1 ---")
@@ -313,12 +348,28 @@ def main() -> None:
     if op not in CONFIG_AUDITORIA:
         return
 
-    anio = input("Año a auditar (YYYY): ").strip()
-    if not anio.isdigit() or len(anio) != 4:
-        print("Año inválido.")
-        return
+    print("\nModo de auditoría:")
+    print("1. Año único")
+    print("2. Rango de años")
 
-    auditar_anio(op, anio)
+    modo = input("\nModo [1-2]: ").strip()
+
+    if modo == "1":
+        anio = input("Año a auditar (YYYY): ").strip()
+        if not anio.isdigit() or len(anio) != 4:
+            print("Año inválido.")
+            return
+        auditar_anio(op, anio)
+
+    elif modo == "2":
+        a0 = input("Año inicio (YYYY): ").strip()
+        a1 = input("Año fin (YYYY): ").strip()
+
+        if not (a0.isdigit() and a1.isdigit() and len(a0) == 4 and len(a1) == 4):
+            print("Rango inválido.")
+            return
+
+        auditar_rango_anios(op, a0, a1)
 
 
 if __name__ == "__main__":
