@@ -1,9 +1,10 @@
 from pathlib import Path
 import json
 
-ruta = Path("/Users/sbc/projects/FondosdePensiones/")
+ruta = Path("data/Carteras_Inversiones_agregadas/2020/csv/202001")
 
-salida = ruta / "lista_archivos_csv.json"
+salida = "lista_archivos_csv.json"
+
 
 def exportar_json(ruta):
 
