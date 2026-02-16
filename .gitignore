@@ -21,3 +21,6 @@ src/fondosdepensiones/prueba.py
 
 # JSON
 lista_archivos_csv.json
+
+# setuptools build artifacts
+*.egg-info/
