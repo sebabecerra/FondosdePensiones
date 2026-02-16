@@ -50,8 +50,8 @@ def descargar_carteras(
 
     # Definición de la jerarquía de almacenamiento cronológico (Año/Mes)
     anio = periodo[:4]
-    html_dir = os.path.join(base_dir, anio, "html", periodo)
-    csv_dir = os.path.join(base_dir, anio, "csv", periodo)
+    html_dir = os.path.join(base_dir,"html", anio, periodo)
+    csv_dir = os.path.join(base_dir, "csv", anio, periodo)
 
     # Sesión con soporte Keep-Alive para optimizar la latencia en hilos
     session = crear_sesion()
