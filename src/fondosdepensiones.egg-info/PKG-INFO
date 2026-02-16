@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: fondosdepensiones
-Version: 0.1.0
-Summary: Descarga y procesamiento de datos de fondos de pensiones (SPensiones)
-Requires-Python: >=3.9
-Requires-Dist: requests
-Requires-Dist: beautifulsoup4
-Requires-Dist: pandas
-Requires-Dist: lxml
