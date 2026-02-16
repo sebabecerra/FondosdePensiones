@@ -1,82 +1,45 @@
-"""
-TEST: Convertir SOLO 1 CSV a formato LONG
-
-INPUT:
-data/Carteras_Inversiones_agregadas/2025/csv/202501/cuadro_no_1_*.csv
-
-OUTPUT:
-cuadro_no_1_long.csv
-"""
+# ============================================
+# BUILD LONG (append-ready)
+# ============================================
 
 import pandas as pd
 from pathlib import Path
+from fondosdepensiones.long import sp_multiheader_to_long
 
-# ============================================================
-# CONFIG
-# ============================================================
 
-CSV_PATH = Path(
-    "data/Carteras_Inversiones_agregadas/2025/csv/202501/"
-    "cuadro_no_1_cartera_agregada_de_los_fondos_de_pensiones_por_tipo_de_fondo.csv"
+# 👇 archivo que estás probando ahora
+file = Path(
+"data/Carteras_Inversiones_agregadas/2020/csv/202010/cuadro_no_1_cartera_agregada_de_los_fondos_de_pensiones_por_tipo_de_fondo.csv"
 )
 
-PERIODO = "202501"
+# ---------------------------------
+# 1. Detectar PERIODO desde carpeta
+# ---------------------------------
+periodo = file.parent.name
+
+print(f"Periodo detectado: {periodo}")
 
 
-# ============================================================
-# CORE
-# ============================================================
-
-def wide_to_long(df: pd.DataFrame, periodo: str) -> pd.DataFrame:
-
-    # 1. Primera columna = variables
-    df = df.rename(columns={df.columns[0]: "variable"})
-
-    # 2. melt
-    df_long = df.melt(
-        id_vars=["variable"],
-        var_name="fondo_medida",
-        value_name="valor"
-    )
-
-    # -----------------------------------------
-    # split fondo / medida (schema-agnostic)
-    # -----------------------------------------
-    def split_fondo_medida(s):
-
-        if s.endswith("_mmusd"):
-            return s.replace("_mmusd", ""), "mmusd"
-
-        if s.endswith("_pct"):
-            return s.replace("_pct", ""), "pct"
-
-        # fondo_total etc.
-        return s, None
-
-    tmp = df_long["fondo_medida"].apply(split_fondo_medida)
-
-    df_long["fondo"]  = tmp.apply(lambda x: x[0])
-    df_long["medida"] = tmp.apply(lambda x: x[1])
-
-    # 4. agregar periodo
-    df_long["periodo"] = periodo
-
-    return df_long[
-        ["periodo", "variable", "fondo", "medida", "valor"]
-    ]
+# ---------------------------------
+# 2. Leer CSV SP (doble header)
+# ---------------------------------
+df = pd.read_csv(file, header=[0,1])
 
 
-# ============================================================
-# RUN
-# ============================================================
+# ---------------------------------
+# 3. LONG (ya trae PERIODO adentro)
+# ---------------------------------
+df_long = sp_multiheader_to_long(
+    df=df,
+    periodo=periodo
+)
 
-df = pd.read_csv(CSV_PATH)
+print(df_long.head())
 
-df_long = wide_to_long(df, PERIODO)
 
-OUT = CSV_PATH.with_name("cuadro_no_1_long.csv")
+# ---------------------------------
+# 4. Guardar test
+# ---------------------------------
+df_long.to_csv("test_long.csv", index=False)
 
-df_long.to_csv(OUT, index=False)
-
-print("✅ LONG generado en:")
-print(OUT)
+print("✅ LONG guardado en test_long.csv")
